@@ -42,17 +42,27 @@ function start {
     # Set defaults if not specified
     : "${ALGO:=lz4}" "${SIZE:=256}" "${PRIORITY:=100}"
 
-    SIZE=$((SIZE * 1024 * 1024)) # convert amount from MiB to bytes
+    readonly TOTAL_MEMORY=$(awk '/MemTotal/{print $2}' /proc/meminfo) # in KiB
 
+    SIZE=$((SIZE * 1024 * 1024)) # convert amount from MiB to bytes
     # Prefer percent if it is set
     if [ -n "${PERCENT}" ]; then
-        readonly TOTAL_MEMORY=$(awk '/MemTotal/{print $2}' /proc/meminfo) # in KiB
         readonly SIZE="$((TOTAL_MEMORY * 1024 * PERCENT / 100))"
+    fi
+
+    if [ -n "${LIMIT_SIZE}" ]; then
+        LIMIT_SIZE=$((LIMIT_SIZE * 1024 * 1024))
+    fi
+    if [ -n "${LIMIT_PERCENT}" ]; then
+        readonly LIMIT_SIZE="$((TOTAL_MEMORY * 1024 * LIMIT_PERCENT / 100))"
     fi
 
     modprobe zram || elog "inserting the zram kernel module"
     echo -n "${ALGO}" > /sys/block/zram0/comp_algorithm || elog "setting compression algo to ${ALGO}"
     echo -n "${SIZE}" > /sys/block/zram0/disksize || elog "setting zram device size to ${SIZE}"
+    if [ -n "${LIMIT_SIZE}" ]; then
+        echo -n "${LIMIT_SIZE}" > /sys/block/zram0/mem_limit || elog "setting zram memory limit to ${LIMIT_SIZE}"
+    fi
     mkswap "${SWAP_DEV}" || elog "initialising swap device"
     swapon -p "${PRIORITY}" "${SWAP_DEV}" || elog "enabling swap device"
 }
