@@ -9,7 +9,7 @@
 
 # https://github.com/torvalds/linux/blob/master/Documentation/blockdev/zram.txt
 
-readonly CONFIG="/etc/default/zramswap"
+readonly CONFIG="/usr/local/etc/zramswap.conf"
 readonly SWAP_DEV="/dev/zram0"
 
 if command -v logger >/dev/null; then
